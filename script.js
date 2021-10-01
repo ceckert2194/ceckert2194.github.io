@@ -17,7 +17,3 @@ function myFunction() {
     navbar.classList.remove("sticky");
   }
 }
-
-function off () {
-    return window.pageYOffset;
-}

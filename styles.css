@@ -12,6 +12,7 @@ body {
     justify-content: space-evenly;
     width: 100%;
     background-color: #f45b69;
+    overflow: hidden;
 }
 
 .list-links {
@@ -37,7 +38,6 @@ body {
 
 #header p {
     margin: auto;
-    padding-bottom: 10vh;
     font-size: 100px;
     color: aliceblue;
 }
@@ -72,9 +72,4 @@ body {
     position: fixed;
     top: 0;
     width: 100%;
-}
-
-/* Add some top padding to the page content to prevent sudden quick movement (as the navigation bar gets a new position at the top of the page (position:fixed and top:0) */
-.sticky + .content {
-    padding-top: 60px;
 }
