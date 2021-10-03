@@ -21,3 +21,15 @@ function scrollContact() {
 
     ele.scrollIntoView({behavior: 'smooth'});
 }
+
+var viewHeight = document.documentElement.clientHeight;
+var nav = document.getElementById('navbar');
+
+
+// function showNav() {
+//     if (window.pageYOffset >= viewHeight) {
+//         nav.style.visibility = 'visible';
+//     } else {
+//         nav.style.visibility = 'hidden';
+//     }
+// }
