@@ -1,5 +1,80 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 62.5%;
+}
+
+li {
+    list-style: none;
+}
+
+a {
+    text-decoration: none;
+}
+
+.hamburger {
+    display: none;
+}
+
+.bar {
+    display: block;
+    width: 25px;
+    height: 3px;
+    margin: 5px auto;
+    -webkit-transition: all 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
+    background-color: #101010;
+}
+
+@media only screen and (max-width: 768px) {
+    .list-links {
+        position: fixed;
+        left: -100%;
+        top: 5rem;
+        flex-direction: column;
+        background-color: #fff;
+        width: 100%;
+        border-radius: 10px;
+        text-align: center;
+        transition: 0.3s;
+        box-shadow: 0 10px 27px rgba(0,0,0,0.5);
+    }
+
+    .list-links.active {
+        left: 0;
+        align-items: flex-start;
+        width: 50vw;
+        margin-left: 50vw;
+    }
+
+    .list-links li {
+        margin: 2.5rem 0;
+    }
+
+    .hamburger {
+        display: block;
+        cursor: pointer;
+    }
+
+    .hamburger.active .bar:nth-child(2){
+        opacity: 0;
+    }
+
+    .hamburger.active .bar:nth-child(1){
+        transform: translateY(8px) rotate(45deg);
+    }
+
+    .hamburger.active .bar:nth-child(3){
+        transform: translateY(-8px) rotate(-45deg);
+    }
+}
+
+
 body {
-    margin: 0px;
     background-color: #000000;
     display: flex;
     flex-direction: column;
@@ -13,21 +88,42 @@ body {
     width: 98%;
     background-color: #f45b69;
     overflow: hidden;
-    border-bottom: 2px aliceblue solid;
+    border-bottom: 1px aliceblue solid;
     /* visibility: hidden; */
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
 }
 
 .list-links {
     display: flex;
     list-style-type: none;
-    padding: 0px;
+    /* padding: 0px; */
+    justify-content: space-between;
+    align-items: center;
+    /* width: 30vw; */
 }
 
 .list-links li {
-    display: flex;
+    /* display: flex;
     justify-content: space-evenly;
     width: 25vw;
-    font-size: 1.1em;
+    font-size: 1.1em; */
+    font-size: 1.6rem;
+    font-weight: 400;
+    color: #000000;
+    margin-left: 5rem;
+}
+
+.list-links li, a:hover{
+    color: #482ff7;
+}
+
+.nav-logo {
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: #000000;
+    text-align: center;
 }
 
 #header {
@@ -44,6 +140,7 @@ body {
 #name {
     margin: auto;
     color: aliceblue;
+    font-size: 3rem;
 }
 
 #about-me {
@@ -55,13 +152,15 @@ body {
     margin-bottom: 2vh;
 }
 
-#about-me h2, h3, p{
+#about-me h2, p{
     text-align: center;
     color: rgb(182, 217, 248);
+    font-size: 1.5rem;
 }
 
 #about-me h2 {
     margin-top: 15vh;
+    font-size: 2rem;
 }
 
 #about-me h3, p {
