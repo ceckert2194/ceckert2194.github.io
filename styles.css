@@ -14,6 +14,8 @@ li {
 
 a {
     text-decoration: none;
+    color: #000;
+    font-weight: 700;
 }
 
 .hamburger {
@@ -49,6 +51,8 @@ a {
         align-items: flex-start;
         width: 50vw;
         margin-left: 50vw;
+        background-color: #484b6d;
+        border: aliceblue solid 1px;
     }
 
     .list-links li {
@@ -86,7 +90,7 @@ body {
 #navbar {
     display: flex;
     width: 98%;
-    background-color: #f45b69;
+    background-color: #484b6d;
     overflow: hidden;
     border-bottom: 1px aliceblue solid;
     /* visibility: hidden; */
@@ -116,8 +120,9 @@ body {
 }
 
 .list-links li, a:hover{
-    color: #482ff7;
+    color: #d4d2e0;
 }
+
 
 .nav-logo {
     font-size: 2.1rem;
