@@ -78,6 +78,7 @@ a {
 
     .text-responsive {
         font-size: 1.1rem;
+        padding: 5px;
     }
 }
 
@@ -158,32 +159,31 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #535252;
     margin-bottom: 2vh;
+    align-items: center;
+    justify-content: space-between;
 }
 
 #about-me h2, p{
     text-align: center;
-    color: rgb(182, 217, 248);
+    color: aliceblue;
     font-size: 1.5rem;
 }
 
 #about-me h2 {
-    margin-top: 15vh;
     font-size: 2rem;
 }
 
-#about-me h3, p {
+#about-me h2, p {
     margin: auto;
     font-family: 'Lora';
 }
 
 #languages {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-evenly;
     width: 98%;
-    height: 15vh;
-    margin: auto;
+    margin-bottom: 10vh;
 }
 
 #projects {
@@ -203,7 +203,7 @@ body {
 }
 
 .responsive {
-    width: 10vw;
+    width: 12vw;
     height: 10vh;
 }
 
@@ -245,4 +245,20 @@ body {
 .devicon-github-original.colored {
     font-size: 100px;
     color: #FFF;
+}
+
+#about-me-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    height: 50vh;
+    width: 50vw;
+    background-color: cadetblue;
+    border: 1px solid cadetblue;
+    border-radius: 10px;
+    margin-top: 20vh;
+}
+
+.about-me-content-responsive {
+    width: 70vw;
 }
