@@ -1,0 +1,3 @@
+[submodule "solar_alignment"]
+	path = solar_alignment
+	url = https://github.com/ceckert2194/solar_party.git
