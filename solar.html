@@ -2,11 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solar Street Alignment Finder</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
     <style>
-        #map { height: 90vh; width: 100vw; }
+        html, body { height: 100%; margin: 0; padding: 0; }
+        #map { height: 80vh; width: 100vw; min-height: 300px; }
+        h2 { font-size: 2rem; text-align: center; margin: 1rem 0; }
+        @media (max-width: 600px) {
+            #map { height: 60vh; min-height: 200px; }
+            h2 { font-size: 1.2rem; }
+            .leaflet-control { font-size: 14px; }
+            .leaflet-tooltip {
+                font-size: 1.2rem;
+                max-width: 98vw;
+            }
+        }
+        .leaflet-tooltip {
+            font-size: 0.9rem;
+            max-width: 90vw;
+            word-break: break-word;
+        }
     </style>
 </head>
 <body>
