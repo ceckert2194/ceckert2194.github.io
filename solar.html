@@ -14,6 +14,7 @@
     <div id="map"></div>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+    <script src="https://unpkg.com/suncalc@1.9.0/suncalc.js"></script>
     <script>
         var map = L.map('map').setView([40.75, -73.98], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -28,43 +29,141 @@
         });
         map.addControl(drawControl);
 
-        // Mock function to generate fake alignment data for demo
-        function getMockAlignments(bounds) {
-            // Generate 3 fake street segments in the selected bounds
-            var min_lat = bounds.getSouth();
-            var min_lon = bounds.getWest();
-            var max_lat = bounds.getNorth();
-            var max_lon = bounds.getEast();
-            var segments = [];
-            for (var i = 0; i < 3; i++) {
-                var start = [
-                    min_lat + Math.random() * (max_lat - min_lat),
-                    min_lon + Math.random() * (max_lon - min_lon)
-                ];
-                var end = [
-                    min_lat + Math.random() * (max_lat - min_lat),
-                    min_lon + Math.random() * (max_lon - min_lon)
-                ];
-                var azimuth = Math.random() * 180;
-                // Generate random alignment dates
-                var alignment_dates = [];
-                for (var j = 0; j < 4; j++) {
-                    var date = `2025-06-${10 + j}`;
-                    var az = j % 2 === 0 ? azimuth : -azimuth;
-                    alignment_dates.push([date, az]);
+        // Helper: fetch street segments from OSM Overpass API
+        async function fetchStreetSegments(bounds) {
+            const min_lat = bounds.getSouth();
+            const min_lon = bounds.getWest();
+            const max_lat = bounds.getNorth();
+            const max_lon = bounds.getEast();
+            // Overpass QL: get all ways tagged as highways (roads) in bbox
+            const query = ` [
+                out:json][timeout:25];
+                (
+                  way["highway"]["highway"!~"footway|cycleway|path|steps|track|service|pedestrian|bridleway|corridor|proposed|construction|bus_guideway|escape|raceway|road|platform|rest_area|track"](${min_lat},${min_lon},${max_lat},${max_lon});
+                );
+                (._;>;);
+                out body;`;
+            const url = "https://overpass-api.de/api/interpreter";
+            const response = await fetch(url, {
+                method: "POST",
+                body: query,
+                headers: { "Content-Type": "application/x-www-form-urlencoded" }
+            });
+            const data = await response.json();
+            // Build node id -> latlon map
+            const nodes = {};
+            data.elements.filter(e => e.type === 'node').forEach(n => {
+                nodes[n.id] = [n.lat, n.lon];
+            });
+            // Build segments: each way is a list of node ids
+            let segments = [];
+            data.elements.filter(e => e.type === 'way').forEach(way => {
+                for (let i = 0; i < way.nodes.length - 1; i++) {
+                    const start = nodes[way.nodes[i]];
+                    const end = nodes[way.nodes[i+1]];
+                    if (start && end) {
+                        segments.push({ start, end });
+                    }
                 }
-                segments.push({ start, end, azimuth, alignment_dates });
-            }
+            });
             return segments;
         }
 
-        map.on(L.Draw.Event.CREATED, function (e) {
+        // Helper: calculate azimuth (degrees from north) between two lat/lon points
+        function calcAzimuth(start, end) {
+            const toRad = deg => deg * Math.PI / 180;
+            const toDeg = rad => rad * 180 / Math.PI;
+            const lat1 = toRad(start[0]);
+            const lon1 = toRad(start[1]);
+            const lat2 = toRad(end[0]);
+            const lon2 = toRad(end[1]);
+            const dLon = lon2 - lon1;
+            const y = Math.sin(dLon) * Math.cos(lat2);
+            const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+            let brng = Math.atan2(y, x);
+            brng = toDeg(brng);
+            return (brng + 360) % 360;
+        }
+
+        // Helper: check if sun azimuth aligns with street azimuth within tolerance
+        function isAligned(sunAz, streetAz, tolerance) {
+            let diff = Math.abs((sunAz - streetAz + 180) % 360 - 180);
+            return diff <= tolerance;
+        }
+
+        // Helper: calculate distance in miles between two lat/lon points (Haversine formula)
+        function haversineMiles(lat1, lon1, lat2, lon2) {
+            const R = 3958.8; // Radius of Earth in miles
+            const toRad = deg => deg * Math.PI / 180;
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Main: for each segment, find alignment dates
+        async function getRealAlignments(bounds) {
+            const segments = await fetchStreetSegments(bounds);
+            const now = new Date();
+            const years = [now.getFullYear(), now.getFullYear() + 1];
+            const tolerance = 2; // degrees
+            let results = [];
+            for (const seg of segments) {
+                const azimuths = [calcAzimuth(seg.start, seg.end), (calcAzimuth(seg.start, seg.end) + 180) % 360];
+                // Use midpoint for sun calculations
+                const lat = (seg.start[0] + seg.end[0]) / 2;
+                const lon = (seg.start[1] + seg.end[1]) / 2;
+                let alignment_dates = [];
+                for (const year of years) {
+                    for (let month = 0; month < 12; month++) {
+                        for (let day = 1; day <= 31; day++) {
+                            let date = new Date(year, month, day);
+                            if (date.getMonth() !== month) continue; // skip invalid dates
+                            let times = SunCalc.getTimes(date, lat, lon);
+                            if (times.sunrise && times.sunset) {
+                                let srAz = SunCalc.getPosition(times.sunrise, lat, lon).azimuth * 180 / Math.PI + 180;
+                                let ssAz = SunCalc.getPosition(times.sunset, lat, lon).azimuth * 180 / Math.PI + 180;
+                                // Check both azimuth directions for sunrise
+                                if (isAligned(srAz, azimuths[0], tolerance) || isAligned(srAz, azimuths[1], tolerance)) {
+                                    alignment_dates.push([date.toISOString().slice(0,10), Math.abs(srAz)]);
+                                }
+                                // Check both azimuth directions for sunset
+                                if (isAligned(ssAz, azimuths[0], tolerance) || isAligned(ssAz, azimuths[1], tolerance)) {
+                                    alignment_dates.push([date.toISOString().slice(0,10), -Math.abs(ssAz)]);
+                                }
+                            }
+                        }
+                    }
+                }
+                if (alignment_dates.length > 0) {
+                    results.push({ start: seg.start, end: seg.end, azimuth: azimuths[0], alignment_dates });
+                }
+            }
+            return results;
+        }
+
+        map.on(L.Draw.Event.CREATED, async function (e) {
             drawnItems.clearLayers();
             var layer = e.layer;
             drawnItems.addLayer(layer);
             var bounds = layer.getBounds();
-            // Use mock data instead of fetch
-            var data = getMockAlignments(bounds);
+            // Calculate bounding box size in miles
+            var minLat = bounds.getSouth();
+            var minLon = bounds.getWest();
+            var maxLat = bounds.getNorth();
+            var maxLon = bounds.getEast();
+            var width = haversineMiles(minLat, minLon, minLat, maxLon);
+            var height = haversineMiles(minLat, minLon, maxLat, minLon);
+            if (width > 2 || height > 2) {
+                alert('Selected area is too large! Please select a box no larger than 2 miles by 2 miles.');
+                drawnItems.clearLayers();
+                return;
+            }
+            // Use real data
+            var data = await getRealAlignments(bounds);
             // Remove previous lines
             drawnItems.eachLayer(function (l) {
                 if (l instanceof L.Polyline && !(l instanceof L.Rectangle)) {
@@ -74,17 +173,35 @@
             // Draw street segments
             data.forEach(function(seg) {
                 var latlngs = [seg.start, seg.end];
-                var poly = L.polyline(latlngs, {color: 'orange'}).addTo(drawnItems);
-                // Prepare sunrise and sunset dates
+                // Find the closest next alignment date
+                var today = new Date();
+                var minDiff = Infinity;
+                var closestType = null; // 'sunrise' or 'sunset'
+                seg.alignment_dates.forEach(function(d) {
+                    var date = new Date(d[0]);
+                    var az = d[1];
+                    var diff = (date - today) / (1000 * 60 * 60 * 24); // days from today
+                    if (diff >= 0 && diff < minDiff) {
+                        minDiff = diff;
+                        closestType = az > 0 ? 'sunrise' : 'sunset';
+                    }
+                });
+                var color = closestType === 'sunset' ? 'blue' : 'orange';
+                var poly = L.polyline(latlngs, {color: color}).addTo(drawnItems);
+                // Prepare sunrise and sunset dates, dropping past dates
+                var today = new Date();
                 var sunriseDates = [];
                 var sunsetDates = [];
                 seg.alignment_dates.forEach(function(d) {
                     var date = d[0];
                     var az = d[1];
-                    if (az > 0) {
-                        sunriseDates.push(date);
-                    } else {
-                        sunsetDates.push(date);
+                    var dateObj = new Date(date);
+                    if (dateObj >= today) {
+                        if (az > 0) {
+                            sunriseDates.push(date);
+                        } else {
+                            sunsetDates.push(date);
+                        }
                     }
                 });
                 // Helper to group consecutive dates into ranges
